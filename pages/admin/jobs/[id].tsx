@@ -25,7 +25,10 @@ interface Job {
   job_received_date?: string
 }
 
+const STATUS_OPTIONS = ['New', 'In Progress', 'Completed', 'Pending', 'Cancelled']
+
 interface JobUpdateForm {
+  status: string
   invoice_raised: boolean
   is_delivered: boolean
   invoice_number: string
@@ -46,6 +49,7 @@ export default function AdminJobEdit() {
   const [error, setError] = useState('')
 
   const [form, setForm] = useState<JobUpdateForm>({
+    status: 'New',
     invoice_raised: false,
     is_delivered: false,
     invoice_number: '',
@@ -66,6 +70,7 @@ export default function AdminJobEdit() {
         setJob(res.data)
 
         setForm({
+          status: res.data.status || 'New',
           invoice_raised: !!res.data.invoice_raised,
           is_delivered: !!res.data.is_delivered,
           invoice_number: res.data.invoice_number || '',
@@ -151,6 +156,21 @@ export default function AdminJobEdit() {
       <section className={styles.updateSection}>
         <h2>Update Delivery, Invoice & Payment</h2>
         <form onSubmit={handleSubmit} className={styles.form}>
+
+          <div className={styles.inputGroup}>
+            <label htmlFor="status">Status</label>
+            <select
+              id="status"
+              name="status"
+              value={form.status}
+              onChange={handleChange}
+            >
+              {STATUS_OPTIONS.map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
+
           <div className={styles.checkboxGroup}>
             <label htmlFor="invoice_raised">
               <input

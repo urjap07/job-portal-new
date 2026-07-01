@@ -3,10 +3,10 @@ import mysql from 'mysql2/promise'
 
 // Set up MySQL connection pool (same as your all jobs API)
 const pool = mysql.createPool({
-  host: '127.0.0.1',
-  user: 'root',            // Your MySQL username
-  password: '',            // Your MySQL password
-  database: 'job_portal',  // Your database name
+  host: process.env.MYSQL_HOST || '127.0.0.1',
+  user: process.env.MYSQL_USER || 'root',
+  password: process.env.MYSQL_PASSWORD || '',
+  database: process.env.MYSQL_DATABASE || 'job_portal',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
@@ -24,6 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const {
+    status,
     invoice_raised,
     is_delivered,
     invoice_number,
@@ -36,6 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const [result] = await pool.query(
       `UPDATE job SET
+        status = ?,
         invoice_raised = ?,
         is_delivered = ?,
         invoice_number = ?,
@@ -46,6 +48,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         updated_at = CURRENT_TIMESTAMP(3)
       WHERE id = ?`,
       [
+        status || 'New',
         invoice_raised ? 1 : 0,
         is_delivered ? 1 : 0,
         invoice_number || null,
