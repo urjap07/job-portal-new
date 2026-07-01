@@ -7,6 +7,7 @@ import styles from '../styles/AdminJobList.module.css' // Reusing admin styles
 interface Job {
   id: number
   job_id: string
+  firm: string
   client_name: string
   job_received_date: string
   mode_received: string
@@ -14,17 +15,21 @@ interface Job {
   status: string
 }
 
+const FIRMS = ['Datachef', 'Techsahyogi'] as const
+type Firm = typeof FIRMS[number]
+
 const UserDashboard: React.FC = () => {
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedFirm, setSelectedFirm] = useState<Firm>('Datachef')
   const router = useRouter()
 
   useEffect(() => {
     const fetchJobs = async () => {
       try {
-        const res = await fetch('/api/jobs/all')  // Or axios.get if preferred
+        const res = await fetch('/api/jobs/all')
         const data = await res.json()
-        setJobs(data)
+        setJobs(Array.isArray(data) ? data : [])
       } catch (error) {
         console.error('Failed to fetch jobs', error)
       } finally {
@@ -36,7 +41,6 @@ const UserDashboard: React.FC = () => {
   }, [])
 
   const handleLogout = () => {
-    // Add any session cleanup here if needed (e.g., localStorage.clear())
     router.push('/login')
   }
 
@@ -65,11 +69,27 @@ const UserDashboard: React.FC = () => {
         Logout
       </button>
 
-      {/* Create New Job link */}
-      <div style={{ marginBottom: '15px' }}>
-        <Link href="/user/job-entry" legacyBehavior>
+      {/* Create New Job + Firm switcher */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+        <Link href={`/user/job-entry?firm=${selectedFirm}`} legacyBehavior>
           <a className={styles.createJobLink}>Create New Job</a>
         </Link>
+        <select
+          value={selectedFirm}
+          onChange={(e) => setSelectedFirm(e.target.value as Firm)}
+          style={{
+            padding: '0.45rem 0.85rem',
+            fontSize: '0.95rem',
+            fontWeight: 600,
+            borderRadius: '6px',
+            border: '2px solid #1d4ed8',
+            color: '#1d4ed8',
+            background: '#fff',
+            cursor: 'pointer',
+          }}
+        >
+          {FIRMS.map(f => <option key={f} value={f}>{f}</option>)}
+        </select>
       </div>
 
       <h1 className={styles.heading}>User Dashboard</h1>
@@ -80,6 +100,7 @@ const UserDashboard: React.FC = () => {
             <tr className={styles.theadRow}>
               <th className={styles.th}>Job Received</th>
               <th className={styles.th}>Job ID</th>
+              <th className={styles.th}>Firm</th>
               <th className={styles.th}>Client</th>
               <th className={styles.th}>Mode</th>
               <th className={styles.th}>Description</th>
@@ -87,19 +108,32 @@ const UserDashboard: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {jobs.length === 0 ? (
+            {jobs.filter(j => (j.firm || 'Datachef') === selectedFirm).length === 0 ? (
               <tr>
-                <td colSpan={6} className={styles.emptyRow}>
-                  No jobs found.
+                <td colSpan={7} className={styles.emptyRow}>
+                  No jobs found for {selectedFirm}.
                 </td>
               </tr>
             ) : (
-              jobs.map((job) => (
+              jobs.filter(j => (j.firm || 'Datachef') === selectedFirm).map((job) => (
                 <tr key={job.id} className={styles.tbodyRow}>
                   <td className={styles.td}>
                     {new Date(job.job_received_date).toLocaleDateString()}
                   </td>
                   <td className={styles.td}>{job.job_id}</td>
+                  <td className={styles.td}>
+                    <span style={{
+                      display: 'inline-block',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      background: job.firm === 'Techsahyogi' ? '#fef3c7' : '#dbeafe',
+                      color: job.firm === 'Techsahyogi' ? '#92400e' : '#1e40af',
+                    }}>
+                      {job.firm || 'Datachef'}
+                    </span>
+                  </td>
                   <td className={styles.td}>{job.client_name}</td>
                   <td className={styles.td}>{job.mode_received}</td>
                   <td className={styles.td} title={job.job_description}>

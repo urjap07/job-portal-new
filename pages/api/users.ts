@@ -4,10 +4,10 @@ import mysql from 'mysql2/promise'
 
 // Configure your MySQL connection (update with your credentials)
 const dbConfig = {
-  host: '127.0.0.1',
-  user: 'root',
-  password: '',
-  database: 'job_portal',
+  host: process.env.MYSQL_HOST || '127.0.0.1',
+  user: process.env.MYSQL_USER || 'root',
+  password: process.env.MYSQL_PASSWORD || '',
+  database: process.env.MYSQL_DATABASE || 'job_portal',
 }
 
 export default async function handler(
@@ -15,8 +15,12 @@ export default async function handler(
   res: NextApiResponse
 ) {
   try {
+    const firm = (req.query.firm as string) || 'Datachef'
     const connection = await mysql.createConnection(dbConfig)
-    const [rows] = await connection.execute('SELECT id, name FROM user')
+    const [rows] = await connection.execute(
+      'SELECT id, name FROM user WHERE firm = ?',
+      [firm]
+    )
     await connection.end()
 
     res.status(200).json(rows)

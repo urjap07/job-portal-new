@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/router'
 import styles from '../styles/JobEntryForm.module.css'
 
 interface Employee {
@@ -11,13 +12,28 @@ interface Code {
   hsn_code: string
 }
 
+const FIRMS = ['Datachef', 'Techsahyogi'] as const
+type Firm = typeof FIRMS[number]
+
 const JobEntryForm = () => {
+  const router = useRouter()
   const [employees, setEmployees] = useState<Employee[]>([])
-  const [codes, setCodes] = useState<Code[]>([]) // ✅ New state
+  const [codes, setCodes] = useState<Code[]>([])
   const [loadingEmployees, setLoadingEmployees] = useState(true)
   const [loadingCodes, setLoadingCodes] = useState(true)
 
   const todayDate = new Date().toISOString().split('T')[0]
+  const [firm, setFirm] = useState<Firm>('Datachef')
+
+  // Pre-select firm from ?firm= query param set by the dashboard
+  useEffect(() => {
+    if (router.isReady) {
+      const q = router.query.firm
+      if (q === 'Techsahyogi') setFirm('Techsahyogi')
+      else setFirm('Datachef')
+    }
+  }, [router.isReady, router.query.firm])
+
   const [form, setForm] = useState({
     client_name: '',
     client_email: '',
@@ -25,15 +41,33 @@ const JobEntryForm = () => {
     job_received_date: todayDate,
     mode_received: 'Email',
     job_description: '',
-    type_of_job: '', // ✅ New field
+    type_of_job: '',
     assigned_to: '',
     target_completion_date: '',
   })
 
   useEffect(() => {
-    async function fetchEmployees() {
+    async function fetchCodes() {
       try {
-        const res = await fetch('/api/users')
+        const res = await fetch('/api/codes')
+        const data = await res.json()
+        setCodes(Array.isArray(data) ? data : [])
+      } catch (error) {
+        console.error('Error fetching codes:', error)
+      } finally {
+        setLoadingCodes(false)
+      }
+    }
+    fetchCodes()
+  }, [])
+
+  // Re-fetch employees whenever firm changes
+  useEffect(() => {
+    async function fetchEmployees() {
+      setLoadingEmployees(true)
+      setForm(prev => ({ ...prev, assigned_to: '' }))
+      try {
+        const res = await fetch(`/api/users?firm=${firm}`)
         if (!res.ok) throw new Error('Failed to fetch employees')
         const data: Employee[] = await res.json()
         setEmployees(data)
@@ -43,22 +77,8 @@ const JobEntryForm = () => {
         setLoadingEmployees(false)
       }
     }
-
-    async function fetchCodes() {
-      try {
-        const res = await fetch('/api/codes')
-        const data: Code[] = await res.json()
-        setCodes(data)
-      } catch (error) {
-        console.error('Error fetching codes:', error)
-      } finally {
-        setLoadingCodes(false)
-      }
-    }
-
     fetchEmployees()
-    fetchCodes()
-  }, [])
+  }, [firm])
 
   const handleChange = (
   e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -77,6 +97,7 @@ const JobEntryForm = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
+          firm,
           assigned_to: parseInt(form.assigned_to, 10),
         }),
       })
@@ -100,7 +121,32 @@ const JobEntryForm = () => {
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.heading}>New Job Entry</h1>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+        <h1 className={styles.heading} style={{ margin: 0 }}>New Job Entry</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <span style={{ fontSize: '0.9rem', color: '#555' }}>Firm:</span>
+          <select
+            value={firm}
+            onChange={(e) => setFirm(e.target.value as Firm)}
+            style={{
+              padding: '0.4rem 0.75rem',
+              fontSize: '0.95rem',
+              fontWeight: 600,
+              borderRadius: '6px',
+              border: '2px solid #1d4ed8',
+              color: '#1d4ed8',
+              background: '#fff',
+              cursor: 'pointer',
+            }}
+          >
+            {FIRMS.map(f => <option key={f} value={f}>{f}</option>)}
+          </select>
+          <span style={{ fontSize: '0.8rem', color: '#888' }}>
+            ({firm === 'Datachef' ? 'DC-' : 'TS-'}###)
+          </span>
+        </div>
+      </div>
+
       <form onSubmit={handleSubmit}>
         <label className={styles.label}>Client Name</label>
         <input

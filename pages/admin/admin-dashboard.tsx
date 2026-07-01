@@ -11,6 +11,7 @@ import { saveAs } from 'file-saver';
 interface Job {
   id: number
   job_id: string
+  firm: string
   client_name: string
   job_received_date: string
   mode_received: string
@@ -20,12 +21,16 @@ interface Job {
   is_delivered: boolean
   payment_received: boolean
   invoice_amount?: number
-  type_of_job?: string // ✅ Ensure this is available
+  type_of_job?: string
 }
+
+const FIRMS = ['Datachef', 'Techsahyogi'] as const
+type Firm = typeof FIRMS[number]
 
 const AdminDashboard = () => {
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedFirm, setSelectedFirm] = useState<Firm>('Datachef')
   const router = useRouter()
 
   useEffect(() => {
@@ -55,6 +60,7 @@ const exportToExcel = () => {
   // Optional: Map only selected fields
   const exportData = jobs.map(job => ({
     'Job ID': job.job_id,
+    'Firm': job.firm || 'Datachef',
     'Client Name': job.client_name,
     'Received Date': new Date(job.job_received_date).toLocaleDateString(),
     'Mode': job.mode_received,
@@ -99,10 +105,26 @@ const exportToExcel = () => {
         Logout
       </button>
 
-      <div style={{ marginBottom: '15px' }}>
-        <Link href="/user/job-entry" legacyBehavior>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+        <Link href={`/user/job-entry?firm=${selectedFirm}`} legacyBehavior>
           <a className={styles.createJobLink}>Create New Job</a>
         </Link>
+        <select
+          value={selectedFirm}
+          onChange={(e) => setSelectedFirm(e.target.value as Firm)}
+          style={{
+            padding: '0.45rem 0.85rem',
+            fontSize: '0.95rem',
+            fontWeight: 600,
+            borderRadius: '6px',
+            border: '2px solid #1d4ed8',
+            color: '#1d4ed8',
+            background: '#fff',
+            cursor: 'pointer',
+          }}
+        >
+          {FIRMS.map(f => <option key={f} value={f}>{f}</option>)}
+        </select>
       </div>
       <h1 className={styles.heading}>Admin - All Jobs</h1>
 
@@ -112,10 +134,11 @@ const exportToExcel = () => {
             <tr className={styles.theadRow}>
               <th className={styles.th}>Job Received</th>
               <th className={styles.th}>Job ID</th>
+              <th className={styles.th}>Firm</th>
               <th className={styles.th}>Client</th>
               <th className={styles.th}>Mode</th>
               <th className={styles.th}>Description</th>
-              <th className={styles.th}>Type of Job</th> {/* ✅ New Column */}
+              <th className={styles.th}>Type of Job</th>
               <th className={styles.th}>Status</th>
               <th className={styles.th}>Invoice Raised</th>
               <th className={styles.th}>Invoice Amount</th>
@@ -124,19 +147,32 @@ const exportToExcel = () => {
             </tr>
           </thead>
           <tbody>
-            {jobs.length === 0 && (
+            {jobs.filter(j => (j.firm || 'Datachef') === selectedFirm).length === 0 && (
               <tr>
-                <td colSpan={11} className={styles.emptyRow}>
-                  No jobs found.
+                <td colSpan={12} className={styles.emptyRow}>
+                  No jobs found for {selectedFirm}.
                 </td>
               </tr>
             )}
-            {jobs.map((job) => (
+            {jobs.filter(j => (j.firm || 'Datachef') === selectedFirm).map((job) => (
               <tr key={job.id} className={styles.tbodyRow}>
                 <td className={styles.td}>
                   {new Date(job.job_received_date).toLocaleDateString()}
                 </td>
                 <td className={styles.td}>{job.job_id}</td>
+                <td className={styles.td}>
+                  <span style={{
+                    display: 'inline-block',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    background: job.firm === 'Techsahyogi' ? '#fef3c7' : '#dbeafe',
+                    color: job.firm === 'Techsahyogi' ? '#92400e' : '#1e40af',
+                  }}>
+                    {job.firm || 'Datachef'}
+                  </span>
+                </td>
                 <td className={styles.td}>{job.client_name}</td>
                 <td className={styles.td}>{job.mode_received}</td>
                 <td className={styles.td}>
