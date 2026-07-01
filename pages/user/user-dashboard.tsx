@@ -1,8 +1,7 @@
-// pages/user/user-dashboard.tsx
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import styles from '../styles/AdminJobList.module.css' // Reusing admin styles
+import styles from '../styles/AdminJobList.module.css'
 
 interface Job {
   id: number
@@ -10,7 +9,6 @@ interface Job {
   firm: string
   client_name: string
   job_received_date: string
-  mode_received: string
   job_description: string
   status: string
 }
@@ -22,6 +20,7 @@ const UserDashboard: React.FC = () => {
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedFirm, setSelectedFirm] = useState<Firm>('Datachef')
+  const [search, setSearch] = useState('')
   const router = useRouter()
 
   useEffect(() => {
@@ -36,115 +35,86 @@ const UserDashboard: React.FC = () => {
         setLoading(false)
       }
     }
-
     fetchJobs()
   }, [])
 
-  const handleLogout = () => {
-    router.push('/login')
-  }
+  const filteredJobs = jobs
+    .filter(j => (j.firm || 'Datachef') === selectedFirm)
+    .filter(j => {
+      if (!search) return true
+      const s = search.toLowerCase()
+      return j.client_name?.toLowerCase().includes(s) || j.job_id?.toLowerCase().includes(s)
+    })
 
-  if (loading) {
-    return <div className={styles.loadingContainer}>Loading jobs...</div>
-  }
+  if (loading) return <div className={styles.loadingContainer}>Loading jobs...</div>
 
   return (
-    <div className={styles.container} style={{ position: 'relative' }}>
-      {/* Logout button */}
-      <button
-        onClick={handleLogout}
-        style={{
-          position: 'absolute',
-          top: '1rem',
-          right: '1rem',
-          padding: '0.5rem 1rem',
-          backgroundColor: '#e53e3e',
-          color: 'white',
-          border: 'none',
-          borderRadius: '4px',
-          cursor: 'pointer',
-          zIndex: 1000,
-        }}
-      >
-        Logout
-      </button>
+    <div className={styles.container}>
 
-      {/* Create New Job + Firm switcher */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
-        <Link href={`/user/job-entry?firm=${selectedFirm}`} legacyBehavior>
-          <a className={styles.createJobLink}>Create New Job</a>
-        </Link>
+      {/* Row 1: heading + logout */}
+      <div className={styles.headerRow}>
+        <h1 className={styles.heading}>User Dashboard</h1>
+        <div className={styles.headerButtons}>
+          <Link href={`/user/job-entry?firm=${selectedFirm}`} legacyBehavior>
+            <a className={styles.createJobLink}>Create New Job</a>
+          </Link>
+          <button onClick={() => router.push('/login')} className={styles.logoutBtn}>Logout</button>
+        </div>
+      </div>
+
+      {/* Row 2: search + firm */}
+      <div className={styles.filterRow}>
+        <input
+          type="text"
+          placeholder="Search by Client or Job ID..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className={styles.searchInput}
+        />
         <select
           value={selectedFirm}
-          onChange={(e) => setSelectedFirm(e.target.value as Firm)}
-          style={{
-            padding: '0.45rem 0.85rem',
-            fontSize: '0.95rem',
-            fontWeight: 600,
-            borderRadius: '6px',
-            border: '2px solid #1d4ed8',
-            color: '#1d4ed8',
-            background: '#fff',
-            cursor: 'pointer',
-          }}
+          onChange={e => setSelectedFirm(e.target.value as Firm)}
+          className={styles.firmSelect}
         >
           {FIRMS.map(f => <option key={f} value={f}>{f}</option>)}
         </select>
       </div>
 
-      <h1 className={styles.heading}>User Dashboard</h1>
-
       <div className={styles.tableWrapper}>
         <table className={styles.table}>
           <thead>
             <tr className={styles.theadRow}>
-              <th className={styles.th}>Job Received</th>
+              <th className={styles.th}>Job Received Date</th>
               <th className={styles.th}>Job ID</th>
-              <th className={styles.th}>Firm</th>
-              <th className={styles.th}>Client</th>
-              <th className={styles.th}>Mode</th>
+              <th className={styles.th}>Client Name</th>
               <th className={styles.th}>Description</th>
               <th className={styles.th}>Status</th>
             </tr>
           </thead>
           <tbody>
-            {jobs.filter(j => (j.firm || 'Datachef') === selectedFirm).length === 0 ? (
+            {filteredJobs.length === 0 ? (
               <tr>
-                <td colSpan={7} className={styles.emptyRow}>
-                  No jobs found for {selectedFirm}.
+                <td colSpan={5} className={styles.emptyRow}>
+                  No jobs found{search ? ` matching "${search}"` : ''}.
                 </td>
               </tr>
-            ) : (
-              jobs.filter(j => (j.firm || 'Datachef') === selectedFirm).map((job) => (
-                <tr key={job.id} className={styles.tbodyRow}>
-                  <td className={styles.td}>
-                    {new Date(job.job_received_date).toLocaleDateString()}
-                  </td>
-                  <td className={styles.td}>{job.job_id}</td>
-                  <td className={styles.td}>
-                    <span style={{
-                      display: 'inline-block',
-                      padding: '2px 8px',
-                      borderRadius: '4px',
-                      fontSize: '0.8rem',
-                      fontWeight: 600,
-                      background: job.firm === 'Techsahyogi' ? '#fef3c7' : '#dbeafe',
-                      color: job.firm === 'Techsahyogi' ? '#92400e' : '#1e40af',
-                    }}>
-                      {job.firm || 'Datachef'}
-                    </span>
-                  </td>
-                  <td className={styles.td}>{job.client_name}</td>
-                  <td className={styles.td}>{job.mode_received}</td>
-                  <td className={styles.td} title={job.job_description}>
-                    {job.job_description.length > 40
-                      ? job.job_description.slice(0, 40) + '...'
+            ) : filteredJobs.map(job => (
+              <tr key={job.id} className={styles.tbodyRow}>
+                <td className={styles.td}>
+                  {job.job_received_date ? job.job_received_date.slice(0, 10) : '—'}
+                </td>
+                <td className={styles.td}>{job.job_id}</td>
+                <td className={styles.td}>{job.client_name}</td>
+                <td className={styles.td}>
+                  <span title={job.job_description}>
+                    {job.job_description?.length > 50
+                      ? job.job_description.slice(0, 50) + '...'
                       : job.job_description}
-                  </td>
-                  <td className={styles.td}>{job.status}</td>
-                </tr>
-              ))
-            )}
+                  </span>
+                </td>
+                <td className={styles.td}>{job.status}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>

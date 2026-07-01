@@ -1,24 +1,22 @@
-// pages/admin/admin-dashboard.tsx
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import axios from 'axios'
 import { useRouter } from 'next/router'
 import styles from '../styles/AdminJobList.module.css'
-import * as XLSX from 'xlsx';
-import { saveAs } from 'file-saver';
-
+import * as XLSX from 'xlsx'
+import { saveAs } from 'file-saver'
 
 interface Job {
   id: number
   job_id: string
   firm: string
   client_name: string
+  created_at: string
   job_received_date: string
   mode_received: string
   job_description: string
   status: string
   invoice_raised: boolean
-  is_delivered: boolean
   payment_received: boolean
   invoice_amount?: number
   type_of_job?: string
@@ -27,116 +25,131 @@ interface Job {
 const FIRMS = ['Datachef', 'Techsahyogi'] as const
 type Firm = typeof FIRMS[number]
 
+const STATUS_OPTIONS = ['New', 'In Progress', 'Completed', 'Pending', 'Cancelled']
+
 const AdminDashboard = () => {
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedFirm, setSelectedFirm] = useState<Firm>('Datachef')
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
   const router = useRouter()
 
   useEffect(() => {
-    async function fetchJobs() {
-      try {
-        const res = await axios.get('/api/jobs/all')
-        setJobs(res.data)
-      } catch (err) {
-        console.error('Failed to fetch jobs', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
     fetchJobs()
   }, [])
 
-  const handleLogout = () => {
-    router.push('/login')
+  async function fetchJobs() {
+    try {
+      const res = await axios.get('/api/jobs/all')
+      setJobs(Array.isArray(res.data) ? res.data : [])
+    } catch (err) {
+      console.error('Failed to fetch jobs', err)
+    } finally {
+      setLoading(false)
+    }
   }
-const exportToExcel = () => {
-  if (!jobs || jobs.length === 0) {
-    alert('No data to export');
-    return;
+
+  const handleDelete = async (id: number, jobId: string) => {
+    if (!confirm(`Delete job ${jobId}? This cannot be undone.`)) return
+    try {
+      await axios.delete(`/api/jobs/${id}`)
+      setJobs(prev => prev.filter(j => j.id !== id))
+    } catch (err) {
+      alert('Failed to delete job')
+    }
   }
 
-  // Optional: Map only selected fields
-  const exportData = jobs.map(job => ({
-    'Job ID': job.job_id,
-    'Firm': job.firm || 'Datachef',
-    'Client Name': job.client_name,
-    'Received Date': new Date(job.job_received_date).toLocaleDateString(),
-    'Mode': job.mode_received,
-    'Description': job.job_description,
-    'Type of Job': job.type_of_job,
-    'Status': job.status,
-    'Invoice Raised': job.invoice_raised ? 'Yes' : 'No',
-    'Invoice Amount': job.invoice_amount ? `₹${job.invoice_amount}` : 'No',
-    'Payment Received': job.payment_received && job.invoice_amount ? `₹${job.invoice_amount}` : 'No',
-  }));
+  const handleLogout = () => router.push('/login')
 
-  const worksheet = XLSX.utils.json_to_sheet(exportData);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Jobs');
+  const exportToExcel = () => {
+    const visible = filteredJobs
+    if (visible.length === 0) { alert('No data to export'); return }
 
-  const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-  const fileName = `jobs_${new Date().toISOString().slice(0, 10)}.xlsx`;
-  const data = new Blob([excelBuffer], { type: 'application/octet-stream' });
-  saveAs(data, fileName);
-};
+    const exportData = visible.map(job => ({
+      'Date': job.created_at ? job.created_at.slice(0, 10) : '',
+      'Job ID': job.job_id,
+      'Firm': job.firm || 'Datachef',
+      'Received Date': job.job_received_date ? job.job_received_date.slice(0, 10) : '',
+      'Client Name': job.client_name,
+      'Description': job.job_description,
+      'Type of Job': job.type_of_job || '',
+      'Status': job.status,
+      'Invoice Raised': job.invoice_raised ? 'Yes' : 'No',
+      'Invoice Amount': job.invoice_amount ? `₹${job.invoice_amount}` : '',
+      'Payment Received': job.payment_received ? 'Yes' : 'No',
+    }))
 
-  if (loading)
-    return <div className={styles.loadingContainer}>Loading jobs...</div>
+    const worksheet = XLSX.utils.json_to_sheet(exportData)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Jobs')
+    const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
+    saveAs(new Blob([buffer], { type: 'application/octet-stream' }), `jobs_${selectedFirm}_${new Date().toISOString().slice(0, 10)}.xlsx`)
+  }
+
+  const filteredJobs = jobs
+    .filter(j => (j.firm || 'Datachef') === selectedFirm)
+    .filter(j => !statusFilter || j.status === statusFilter)
+    .filter(j => {
+      if (!search) return true
+      const s = search.toLowerCase()
+      return j.client_name?.toLowerCase().includes(s) || j.job_id?.toLowerCase().includes(s)
+    })
+
+  if (loading) return <div className={styles.loadingContainer}>Loading jobs...</div>
 
   return (
-    <div className={styles.container} style={{ position: 'relative' }}>
-      <button
-        onClick={handleLogout}
-        style={{
-          position: 'absolute',
-          top: '1rem',
-          right: '1rem',
-          padding: '0.5rem 1rem',
-          backgroundColor: '#e53e3e',
-          color: 'white',
-          border: 'none',
-          borderRadius: '4px',
-          cursor: 'pointer',
-          zIndex: 1000,
-        }}
-      >
-        Logout
-      </button>
+    <div className={styles.container}>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
-        <Link href={`/user/job-entry?firm=${selectedFirm}`} legacyBehavior>
-          <a className={styles.createJobLink}>Create New Job</a>
-        </Link>
+      {/* Row 1: heading + buttons */}
+      <div className={styles.headerRow}>
+        <h1 className={styles.heading}>Admin Dashboard</h1>
+        <div className={styles.headerButtons}>
+          <Link href={`/user/job-entry?firm=${selectedFirm}`} legacyBehavior>
+            <a className={styles.createJobLink}>Create New Job</a>
+          </Link>
+          <button onClick={handleLogout} className={styles.logoutBtn}>Logout</button>
+        </div>
+      </div>
+
+      {/* Row 2: search | status | firm | export */}
+      <div className={styles.filterRow}>
+        <input
+          type="text"
+          placeholder="Search by Client or Job ID..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className={styles.searchInput}
+        />
+        <select
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value)}
+          className={styles.statusSelect}
+        >
+          <option value="">All</option>
+          {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
         <select
           value={selectedFirm}
-          onChange={(e) => setSelectedFirm(e.target.value as Firm)}
-          style={{
-            padding: '0.45rem 0.85rem',
-            fontSize: '0.95rem',
-            fontWeight: 600,
-            borderRadius: '6px',
-            border: '2px solid #1d4ed8',
-            color: '#1d4ed8',
-            background: '#fff',
-            cursor: 'pointer',
-          }}
+          onChange={e => setSelectedFirm(e.target.value as Firm)}
+          className={styles.firmSelect}
         >
           {FIRMS.map(f => <option key={f} value={f}>{f}</option>)}
         </select>
+        <button onClick={exportToExcel} className={`${styles.exportBtn} ${styles.exportSpacer}`}>
+          Export to Excel
+        </button>
       </div>
-      <h1 className={styles.heading}>Admin - All Jobs</h1>
 
+      {/* Table */}
       <div className={styles.tableWrapper}>
         <table className={styles.table}>
           <thead>
             <tr className={styles.theadRow}>
-              <th className={styles.th}>Job Received</th>
+              <th className={styles.th}>Date ▼</th>
               <th className={styles.th}>Job ID</th>
-              <th className={styles.th}>Firm</th>
-              <th className={styles.th}>Client</th>
-              <th className={styles.th}>Mode</th>
+              <th className={styles.th}>Received Date</th>
+              <th className={styles.th}>Client Name</th>
               <th className={styles.th}>Description</th>
               <th className={styles.th}>Type of Job</th>
               <th className={styles.th}>Status</th>
@@ -147,77 +160,63 @@ const exportToExcel = () => {
             </tr>
           </thead>
           <tbody>
-            {jobs.filter(j => (j.firm || 'Datachef') === selectedFirm).length === 0 && (
+            {filteredJobs.length === 0 ? (
               <tr>
-                <td colSpan={12} className={styles.emptyRow}>
-                  No jobs found for {selectedFirm}.
+                <td colSpan={11} className={styles.emptyRow}>
+                  No jobs found{statusFilter ? ` with status "${statusFilter}"` : ''}{search ? ` matching "${search}"` : ''}.
                 </td>
               </tr>
-            )}
-            {jobs.filter(j => (j.firm || 'Datachef') === selectedFirm).map((job) => (
+            ) : filteredJobs.map(job => (
               <tr key={job.id} className={styles.tbodyRow}>
                 <td className={styles.td}>
-                  {new Date(job.job_received_date).toLocaleDateString()}
+                  {job.created_at ? job.created_at.slice(0, 10) : '—'}
                 </td>
                 <td className={styles.td}>{job.job_id}</td>
                 <td className={styles.td}>
-                  <span style={{
-                    display: 'inline-block',
-                    padding: '2px 8px',
-                    borderRadius: '4px',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    background: job.firm === 'Techsahyogi' ? '#fef3c7' : '#dbeafe',
-                    color: job.firm === 'Techsahyogi' ? '#92400e' : '#1e40af',
-                  }}>
-                    {job.firm || 'Datachef'}
-                  </span>
+                  {job.job_received_date ? job.job_received_date.slice(0, 10) : '—'}
                 </td>
                 <td className={styles.td}>{job.client_name}</td>
-                <td className={styles.td}>{job.mode_received}</td>
                 <td className={styles.td}>
                   <span title={job.job_description}>
-                    {job.job_description.length > 40
+                    {job.job_description?.length > 40
                       ? job.job_description.slice(0, 40) + '...'
                       : job.job_description}
                   </span>
                 </td>
-
                 <td className={styles.td}>
-                <span title={job.type_of_job}>
-                {job.type_of_job && job.type_of_job.length > 40
-                ? job.type_of_job.slice(0, 40) + '...'
-                : job.type_of_job || 'N/A'}
-                </span>
+                  <span title={job.type_of_job}>
+                    {job.type_of_job && job.type_of_job.length > 30
+                      ? job.type_of_job.slice(0, 30) + '...'
+                      : job.type_of_job || '—'}
+                  </span>
                 </td>
-
                 <td className={styles.td}>{job.status}</td>
                 <td className={styles.td}>{job.invoice_raised ? 'Yes' : 'No'}</td>
                 <td className={styles.td}>
-                  {job.invoice_amount ? `₹${job.invoice_amount}` : 'No'}
+                  {job.invoice_amount ? `₹${job.invoice_amount}` : ''}
                 </td>
                 <td className={styles.td}>
-                  {job.payment_received && job.invoice_amount
-                    ? `₹${job.invoice_amount}`
-                    : 'No'}
+                  {job.payment_received ? 'Yes' : 'No'}
                 </td>
                 <td className={styles.td}>
-                  <Link href={`/admin/jobs/${job.id}`} legacyBehavior>
-                    <a className={styles.editLink}>Edit</a>
-                  </Link>
+                  <div className={styles.actionCell}>
+                    <Link href={`/admin/jobs/${job.id}`} legacyBehavior>
+                      <a className={styles.editBtn}>Edit</a>
+                    </Link>
+                    <button
+                      className={styles.deleteBtn}
+                      onClick={() => handleDelete(job.id, job.job_id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-    <div className={styles.buttonWrapper}>
-    <button onClick={exportToExcel} className={styles.exportButton}>
-    Export to Excel
-    </button>
     </div>
-    </div>
-    
   )
 }
 

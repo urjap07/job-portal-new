@@ -16,27 +16,32 @@ const pool = mysql.createPool({
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { id } = req.query
 
-  if (req.method !== 'GET') {
-    return res.status(405).json({ message: 'Only GET allowed' })
-  }
-
   if (!id) {
     return res.status(400).json({ message: 'Job ID is required' })
   }
 
-  try {
-    const [rows] = await pool.query<RowDataPacket[]>(
-      'SELECT * FROM job WHERE id = ?',
-      [id]
-    )
-
-    if (rows.length === 0) {
-      return res.status(404).json({ message: 'Job not found' })
+  if (req.method === 'GET') {
+    try {
+      const [rows] = await pool.query<RowDataPacket[]>(
+        'SELECT * FROM job WHERE id = ?',
+        [id]
+      )
+      if (rows.length === 0) return res.status(404).json({ message: 'Job not found' })
+      res.status(200).json(rows[0])
+    } catch (error: any) {
+      res.status(500).json({ message: 'Failed to fetch job', error: error.message })
     }
 
-    res.status(200).json(rows[0])
-  } catch (error: any) {
-    console.error('❌ DB error in [id].ts:', error)
-    res.status(500).json({ message: 'Failed to fetch job', error: error.message })
+  } else if (req.method === 'DELETE') {
+    try {
+      await pool.query('DELETE FROM job WHERE id = ?', [id])
+      res.status(200).json({ message: 'Job deleted successfully' })
+    } catch (error: any) {
+      res.status(500).json({ message: 'Failed to delete job', error: error.message })
+    }
+
+  } else {
+    res.setHeader('Allow', ['GET', 'DELETE'])
+    res.status(405).json({ message: 'Method not allowed' })
   }
 }

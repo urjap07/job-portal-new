@@ -1,65 +1,219 @@
-/* styles/AdminJobList.module.css */
+/* AdminJobList.module.css */
 
 .container {
   max-width: 1500px;
   margin: 2rem auto;
-  padding: 1.5rem;
+  padding: 1.5rem 2rem;
   background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
   font-family: Arial, sans-serif;
+}
+
+/* ── Header row: heading left, buttons right ── */
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
 }
 
 .heading {
   font-size: 2rem;
   font-weight: 800;
-  margin-bottom: 1.5rem;
-  color: #222;
+  color: #1d4ed8;
+  margin: 0;
+}
+
+.headerButtons {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* ── Filter row: search | status | firm | export ── */
+.filterRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.searchInput {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.95rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 220px;
+  outline: none;
+}
+
+.searchInput:focus {
+  border-color: #1d4ed8;
+}
+
+.statusSelect,
+.firmSelect {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.95rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  outline: none;
+}
+
+.statusSelect:focus,
+.firmSelect:focus {
+  border-color: #1d4ed8;
+}
+
+.exportSpacer {
+  margin-left: auto;
+}
+
+/* ── Buttons ── */
+.createJobLink {
+  display: inline-block;
+  background-color: #1d4ed8;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  text-decoration: none;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  transition: background-color 0.2s;
+}
+
+.createJobLink:hover {
+  background-color: #1e3a8a;
+}
+
+.logoutBtn {
+  padding: 0.45rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: 2px solid #e53e3e;
+  color: #e53e3e;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.logoutBtn:hover {
+  background-color: #e53e3e;
+  color: #fff;
+}
+
+.exportBtn {
+  padding: 0.45rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: 1px solid #1d4ed8;
+  color: #1d4ed8;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.exportBtn:hover {
+  background-color: #1d4ed8;
+  color: #fff;
+}
+
+/* ── Table ── */
+.tableWrapper {
+  overflow-x: auto;
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
-  border: 1px solid #ccc;
+  border: 1px solid #e2e8f0;
+  font-size: 0.9rem;
 }
 
 .theadRow {
-  background-color: #1d4ed8; /* blue */
-  color: white;
-}
-
-.th, .td {
-  border: 1px solid #ccc;
-  padding: 0.75rem 1rem;
-  text-align: left;
+  background-color: #fff;
+  color: #374151;
+  border-bottom: 2px solid #e2e8f0;
 }
 
 .th {
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 700;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: #6b7280;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
 }
 
-.tbodyRow:nth-child(even) {
-  background-color: #f9fafb;
+.td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  color: #374151;
+  vertical-align: middle;
 }
 
 .tbodyRow:hover {
-  background-color: #bfdbfe; /* lighter blue */
-  cursor: pointer;
+  background-color: #f0f7ff;
 }
 
-.editLink {
-  color: #2563eb; /* blue-600 */
+/* ── Action buttons in table ── */
+.actionCell {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.editBtn {
+  padding: 0.25rem 0.65rem;
+  font-size: 0.8rem;
   font-weight: 600;
+  border: 1px solid #2563eb;
+  color: #2563eb;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: background-color 0.15s, color 0.15s;
   text-decoration: none;
+  display: inline-block;
 }
 
-.editLink:hover {
-  color: #1e40af; /* blue-800 */
-  text-decoration: underline;
+.editBtn:hover {
+  background-color: #2563eb;
+  color: #fff;
 }
 
+.deleteBtn {
+  padding: 0.25rem 0.65rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid #dc2626;
+  color: #dc2626;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.deleteBtn:hover {
+  background-color: #dc2626;
+  color: #fff;
+}
+
+/* ── Misc ── */
 .loadingContainer {
   display: flex;
   justify-content: center;
@@ -74,68 +228,3 @@
   padding: 2rem 0;
   color: #777;
 }
-
-.td span {
-  display: inline-block;
-  max-width: 160px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  vertical-align: bottom;
-}
-
-.createJobLink {
-  display: inline-block;
-  background-color: #0070f3;
-  color: #fff;
-  font-weight: bold;
-  padding: 8px 16px;
-  border-radius: 5px;
-  text-decoration: none;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.createJobLink:hover {
-  background-color: #005bb5;
-}
-
-/* ------------------- New additions below -------------------- */
-
-/* Accessibility focus outlines for links/buttons */
-.createJobLink:focus,
-.editLink:focus {
-  outline: 3px solid #2563eb;
-  outline-offset: 2px;
-}
-
-/* Responsive table wrapper for horizontal scroll */
-.tableWrapper {
-  overflow-x: auto;
-}
-
-/* Cursor help on truncated text tooltip */
-.td span[title] {
-  cursor: help;
-}
-.buttonWrapper {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
-}
-.exportButton {
-  background-color: #007bff;
-  color: white;
-  padding: 10px 16px;
-  border: none;
-  border-radius: 6px;
-  margin-top: 20px;
-  cursor: pointer;
-  font-size: 16px;
-  align: center;
-}
-
-.exportButton:hover {
-  background-color: #0056b3;
-}
-
