@@ -157,7 +157,7 @@ export default function AdminJobEdit() {
         <h2>Update Delivery, Invoice & Payment</h2>
         <form onSubmit={handleSubmit} className={styles.form}>
 
-          <div className={styles.inputGroup}>
+          <div className={styles.statusGroup}>
             <label htmlFor="status">Status</label>
             <select
               id="status"
