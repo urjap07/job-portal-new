@@ -87,7 +87,7 @@ const UserDashboard: React.FC = () => {
               <th className={styles.th}>Job Received Date</th>
               <th className={styles.th}>Job ID</th>
               <th className={styles.th}>Client Name</th>
-              <th className={styles.th}>Description</th>
+              <th className={styles.th}>Job Description</th>
               <th className={styles.th}>Status</th>
             </tr>
           </thead>
